@@ -16,7 +16,7 @@ from fairseq import options, tasks, utils
 from fairseq.data import indexed_dataset
 from fairseq.binarizer import Binarizer
 from multiprocessing import Pool
-from bert import BertTokenizer
+from transformers import PreTrainedTokenizer, AutoTokenizer
 import os
 import shutil
 
@@ -97,8 +97,8 @@ def main(args):
 
     def make_binary_dataset(vocab, input_prefix, output_prefix, lang, num_workers):
         print("| [{}] Dictionary: {} types".format(lang, len(vocab) - 1))
-        output_prefix += '.bert' if isinstance(vocab, BertTokenizer) else ''
-        input_prefix += '.bert' if isinstance(vocab, BertTokenizer) else ''
+        output_prefix += '.bert' if isinstance(vocab, PreTrainedTokenizer) else ''
+        input_prefix += '.bert' if isinstance(vocab, PreTrainedTokenizer) else ''
         n_seq_tok = [0, 0]
         replaced = Counter()
 
@@ -187,7 +187,8 @@ def main(args):
     if target:
         make_all(args.target_lang, tgt_dict)
 
-    berttokenizer = BertTokenizer.from_pretrained(args.bert_model_name)
+    berttokenizer = AutoTokenizer.from_pretrained(args.bert_model_name,use_fast=False)
+    print(" type :::: {}".format(type(berttokenizer)))
     make_all(args.source_lang, berttokenizer)
 
     print("| Wrote preprocessed data to {}".format(args.destdir))
