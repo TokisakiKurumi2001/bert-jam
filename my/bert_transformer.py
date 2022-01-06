@@ -30,9 +30,8 @@ from fairseq.modules import (
 DEFAULT_MAX_SOURCE_POSITIONS = 1024
 DEFAULT_MAX_TARGET_POSITIONS = 1024
 
-# from bert import BertModel
-# from bert import BertTokenizer
-from transformers import BertModel, BertForPreTraining, BertTokenizer
+# from transformers import BertModel, BertForPreTraining, BertTokenizer
+from transformers import AutoTokenizer, AutoModel
 
 @register_model('bert_transformer')
 class BertTransformerModel(FairseqEncoderDecoderModel):
@@ -128,7 +127,7 @@ class BertTransformerModel(FairseqEncoderDecoderModel):
         if len(task.datasets) > 0:
             src_berttokenizer = next(iter(task.datasets.values())).berttokenizer
         else:
-            src_berttokenizer = BertTokenizer.from_pretrained(args.bert_model_name)
+            src_berttokenizer = AutoTokenizer.from_pretrained(args.bert_model_name)
 
         def build_embedding(dictionary, embed_dim, path=None):
             num_embeddings = len(dictionary)
@@ -162,7 +161,7 @@ class BertTransformerModel(FairseqEncoderDecoderModel):
                 tgt_dict, args.decoder_embed_dim, args.decoder_embed_path
             )
         from_tf = getattr(args, 'from_tf', False)
-        bertencoder = BertForPreTraining.from_pretrained(args.bert_model_name, from_tf=from_tf,
+        bertencoder = AutoModel.from_pretrained(args.bert_model_name, from_tf=from_tf,
                                                          output_hidden_states=True).bert
         args.bert_out_dim = bertencoder.config.hidden_size
         encoder = cls.build_encoder(args, src_dict, encoder_embed_tokens)
@@ -1156,5 +1155,3 @@ def bert_transformer_wmt_en_de_big(args):
     args.decoder_attention_heads = getattr(args, 'decoder_attention_heads', 16)
     args.dropout = getattr(args, 'dropout', 0.3)
     base_architecture(args)
-
-
