@@ -9,7 +9,7 @@ from collections import Counter
 import os
 
 from fairseq.tokenizer import tokenize_line
-from bert import BertTokenizer
+from transformers import PreTrainedTokenizer, AutoTokenizer
 import torch
 def safe_readline(f):
     pos = f.tell()
@@ -28,7 +28,9 @@ class Binarizer:
                  offset=0, end=-1):
         nseq, ntok = 0, 0
         replaced = Counter()
-
+        if isinstance(dict, PreTrainedTokenizer):
+            dict.unk_word = dict.special_tokens_map['unk_token']
+            dict.unk_index = dict.vocab[dict.special_tokens_map['unk_token']]
         def replaced_consumer(word, idx):
             if idx == dict.unk_index and word != dict.unk_word:
                 replaced.update([word])
@@ -40,17 +42,18 @@ class Binarizer:
             while line:
                 if end > 0 and f.tell() > end:
                     break
-                if isinstance(dict, BertTokenizer):
+                if isinstance(dict, PreTrainedTokenizer):
                     line = line.strip()
-                    line = '{} {} {}'.format('[CLS]', line, '[SEP]')
-                    tokenizedline = dict.tokenize(line)
-                    if len(tokenizedline) > dict.max_len:
-                        tokenizedline = tokenizedline[:dict.max_len-1]
-                        tokenizedline.append('[SEP]')
-                    words = dict.convert_tokens_to_ids(tokenizedline)
-                    nwords = len(words)
+                    tokenizedline = dict.tokenize(dict.special_tokens_map['cls_token'] +
+                                                  line + dict.special_tokens_map['sep_token'])
+                    input_ids = dict(line)['input_ids']
+                    if len(input_ids) > dict.model_max_length:
+                        input_ids = input_ids[:dict.model_max_length-1] + [input_ids[-1]]
+                        tokenizedline = tokenizedline[:dict.model_max_length-1] + [dict.special_tokens_map['sep_token']]
+                    assert len(input_ids) == len(tokenizedline)
+                    nwords = len(input_ids)
                     ids = torch.IntTensor(nwords)
-                    for i, word in enumerate(words):
+                    for i, word in enumerate(input_ids):
                         ids[i] = word
                         replaced_consumer(tokenizedline[i], word)
                 else:
